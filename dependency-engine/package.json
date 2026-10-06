@@ -1,0 +1,17 @@
+{
+  "name": "codesync-dependency-engine",
+  "version": "1.0.0",
+  "description": "TypeScript AST-based source code dependency analysis and candidate extraction engine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/test.js"
+  },
+  "dependencies": {
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0"
+  }
+}

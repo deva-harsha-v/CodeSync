@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Next.js / Frontend
+frontend/.next/
+frontend/out/
+build/
+dist/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment & Secrets
+.env
+.env.local
+.env.development.local
+*.pem
+*.key
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local SQLite fallback db
+*.sqlite
+*.sqlite3
+*.db

@@ -1,0 +1,30 @@
+{
+  "evaluation_title": "Comparative Evaluation: Dependency-Only vs CodeSync Dependency+ML",
+  "test_dataset_size": 150,
+  "temporal_evaluation_range": "2025-03-17T11:00:00 to 2025-04-11T06:00:00",
+  "baseline": {
+    "method": "Baseline (Dependency-Only Static Analysis)",
+    "precision": 0.7842,
+    "recall": 1.0,
+    "f1": 0.879,
+    "false_positives": 30,
+    "false_negatives": 0,
+    "true_positives": 109,
+    "true_negatives": 11
+  },
+  "proposed": {
+    "method": "Proposed (CodeSync Dependency-Engine + Random Forest ML)",
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "top_k_hit_rate": 0.7267,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "true_positives": 109,
+    "true_negatives": 41,
+    "false_positive_reduction_percent": 100.0
+  },
+  "research_conclusion": "The proposed Dependency+ML architecture achieved a Precision of 1.0 and F1 of 1.0, reducing false-positive alerts by 100.0% compared to dependency-only baseline, while maintaining Top-k hit rate of 0.7267."
+}

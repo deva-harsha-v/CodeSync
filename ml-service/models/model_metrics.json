@@ -1,0 +1,60 @@
+{
+  "model_version": "v1.0.0",
+  "training_samples": 450,
+  "test_samples": 150,
+  "split_method": "Temporal (Strict commit-ordered chronological split)",
+  "features": [
+    "direct_dependency",
+    "transitive_dependency_count",
+    "dependency_distance",
+    "dependent_count",
+    "lines_added",
+    "lines_deleted",
+    "total_lines_changed",
+    "functions_changed",
+    "classes_changed",
+    "files_changed",
+    "historical_change_frequency",
+    "historical_cochange_frequency",
+    "recent_change_frequency",
+    "previous_target_changes",
+    "previous_test_failures",
+    "file_criticality",
+    "developer_count",
+    "test_coverage"
+  ],
+  "baseline_logistic_regression": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0
+  },
+  "primary_random_forest": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0
+  },
+  "feature_importances": {
+    "dependency_distance": 0.3035,
+    "direct_dependency": 0.2472,
+    "transitive_dependency_count": 0.2033,
+    "file_criticality": 0.1577,
+    "historical_cochange_frequency": 0.0768,
+    "dependent_count": 0.0022,
+    "test_coverage": 0.0021,
+    "total_lines_changed": 0.0016,
+    "recent_change_frequency": 0.0012,
+    "lines_added": 0.0011,
+    "lines_deleted": 0.0009,
+    "files_changed": 0.0008,
+    "functions_changed": 0.0005,
+    "previous_target_changes": 0.0005,
+    "previous_test_failures": 0.0004,
+    "developer_count": 0.0002,
+    "historical_change_frequency": 0.0001,
+    "classes_changed": 0.0
+  }
+}
