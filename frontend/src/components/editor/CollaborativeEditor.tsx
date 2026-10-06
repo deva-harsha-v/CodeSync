@@ -1,25 +1,45 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { ProjectFile, UserProfile } from '../../types';
+import {
+  IconFile,
+  IconX,
+  IconLock,
+  IconCheck,
+  IconSparkles,
+  IconGitBranch,
+  IconUser
+} from '../common/Icons';
 
 interface CollaborativeEditorProps {
   file: ProjectFile | null;
+  openFiles?: ProjectFile[];
+  activeFileId?: string | null;
   currentUser: UserProfile | null;
   ws: WebSocket | null;
   onSave: (content: string) => Promise<void>;
   onRequestAccess: (file: ProjectFile) => void;
+  onSelectFile?: (file: ProjectFile) => void;
+  onCloseFileTab?: (fileId: string) => void;
+  onCursorChange?: (pos: { line: number; col: number }) => void;
 }
 
 export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   file,
+  openFiles = [],
+  activeFileId,
   currentUser,
   ws,
   onSave,
-  onRequestAccess
+  onRequestAccess,
+  onSelectFile,
+  onCloseFileTab,
+  onCursorChange
 }) => {
   const [content, setContent] = useState<string>('');
   const [collaborators, setCollaborators] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const editorRef = useRef<any>(null);
   const isRemoteChangeRef = useRef(false);
 
@@ -27,6 +47,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   useEffect(() => {
     if (!file) return;
     setContent(file.content || '');
+    setIsDirty(false);
 
     // Join WebSocket file room
     if (ws && ws.readyState === WebSocket.OPEN && currentUser) {
@@ -55,6 +76,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
           case 'INIT_SNAPSHOT':
             if (msg.content !== undefined) {
               setContent(msg.content);
+              setIsDirty(false);
             }
             if (msg.collaborators) {
               setCollaborators(msg.collaborators.filter((c: any) => c.userId !== currentUser?.id));
@@ -68,7 +90,6 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
             break;
 
           case 'OT_BROADCAST':
-            // Apply peer's operation without re-broadcasting
             if (msg.operation && editorRef.current) {
               isRemoteChangeRef.current = true;
               const model = editorRef.current.getModel();
@@ -77,25 +98,37 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
                   model.setValue(msg.operation.content);
                 } else if (msg.operation.type === 'insert') {
                   const pos = model.getPositionAt(msg.operation.position);
-                  model.applyEdits([{ range: new (window as any).monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column), text: msg.operation.text }]);
+                  model.applyEdits([
+                    {
+                      range: new (window as any).monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
+                      text: msg.operation.text
+                    }
+                  ]);
                 } else if (msg.operation.type === 'delete') {
                   const startPos = model.getPositionAt(msg.operation.position);
                   const endPos = model.getPositionAt(msg.operation.position + msg.operation.length);
-                  model.applyEdits([{ range: new (window as any).monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column), text: '' }]);
+                  model.applyEdits([
+                    {
+                      range: new (window as any).monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column),
+                      text: ''
+                    }
+                  ]);
                 }
               }
               setContent(editorRef.current.getValue());
-              setTimeout(() => { isRemoteChangeRef.current = false; }, 50);
+              setTimeout(() => {
+                isRemoteChangeRef.current = false;
+              }, 50);
             }
             break;
 
           case 'SAVE_SUCCESS':
             setSaving(false);
+            setIsDirty(false);
             break;
 
           case 'SAVE_ERROR':
             setSaving(false);
-            alert(`Save error: ${msg.error}`);
             break;
         }
       } catch (err) {
@@ -126,6 +159,9 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
     // Handle cursor movements
     editor.onDidChangeCursorPosition((e) => {
+      if (onCursorChange) {
+        onCursorChange({ line: e.position.lineNumber, col: e.position.column });
+      }
       if (ws && ws.readyState === WebSocket.OPEN && file) {
         ws.send(
           JSON.stringify({
@@ -146,6 +182,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const handleEditorChange = (value: string | undefined) => {
     const val = value || '';
     setContent(val);
+    setIsDirty(true);
 
     if (isRemoteChangeRef.current) return;
 
@@ -182,20 +219,20 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
             content
           })
         );
-      } else {
-        await onSave(content);
-        setSaving(false);
       }
-    } catch (err: any) {
+      await onSave(content);
+      setIsDirty(false);
+    } finally {
       setSaving(false);
-      alert(`Save failed: ${err.message}`);
     }
   };
 
   if (!file) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-        Select a file from the explorer to begin collaborating
+      <div className="empty-state editor-empty-state">
+        <IconFile size={36} color="var(--text-muted)" />
+        <div className="empty-state-title">No file open</div>
+        <p className="empty-state-desc">Select an artifact from the explorer or use Ctrl+K to jump to a file.</p>
       </div>
     );
   }
@@ -203,55 +240,114 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const isReadOnly = file.canEdit === false;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="editor-topbar">
-        <div className="active-file-title">
-          <span>{file.path}</span>
-          <span className="owner-badge" style={{ marginLeft: '8px' }}>
-            Owner: {file.owner_name || 'Unassigned'}
+    <div className="collaborative-editor-wrapper">
+      {/* 1. File Tabs Bar */}
+      {openFiles.length > 0 && (
+        <div className="editor-tabs-bar" role="tablist">
+          {openFiles.map((of) => {
+            const isActive = of.id === file.id;
+            return (
+              <div
+                key={of.id}
+                className={`editor-tab-item ${isActive ? 'active' : ''}`}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => onSelectFile && onSelectFile(of)}
+              >
+                <IconFile size={13} color={isActive ? 'var(--color-primary)' : 'var(--text-muted)'} />
+                <span className="tab-name">{of.name}</span>
+                {isActive && isDirty && <span className="tab-dirty-dot" title="Unsaved changes" />}
+                {onCloseFileTab && (
+                  <button
+                    className="tab-close-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCloseFileTab(of.id);
+                    }}
+                    title="Close tab"
+                  >
+                    <IconX size={11} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 2. Breadcrumbs & File Status Row */}
+      <div className="editor-status-row">
+        <div className="status-row-left">
+          <span className="file-path-breadcrumb">{file.path}</span>
+          <span className="status-badge-saved">
+            {isDirty ? (
+              <span className="badge-dirty">? Unsaved</span>
+            ) : (
+              <span className="badge-saved">
+                <IconCheck size={11} /> Saved
+              </span>
+            )}
           </span>
+          <span className="file-owner-pill">
+            <IconUser size={11} /> {file.owner_name || 'Unassigned'}
+          </span>
+          <span className="file-branch-pill">
+            <IconGitBranch size={11} /> main
+          </span>
+          <span className="file-lang-pill">{file.language || 'TypeScript'}</span>
+
           {isReadOnly && (
-            <span
-              style={{
-                background: 'var(--color-high-bg)',
-                color: 'var(--color-high)',
-                padding: '1px 6px',
-                borderRadius: '4px',
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
+            <button
+              className="badge-locked-action"
               onClick={() => onRequestAccess(file)}
+              title="Click to request edit access"
             >
-              🔒 Read-Only (Request Access)
-            </span>
+              <IconLock size={11} /> Read-Only (Request Access)
+            </button>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="editor-collaborators">
-            {collaborators.map((c) => (
-              <div
-                key={c.userId}
-                className="collaborator-pill"
-                style={{ backgroundColor: c.color }}
-                title={`${c.userName} (${c.userRole})`}
-              >
-                ● {c.userName.split(' ')[0]}
-              </div>
-            ))}
-          </div>
+        <div className="status-row-right">
+          {collaborators.length > 0 && (
+            <div className="collaborators-pill-group">
+              {collaborators.map((c) => (
+                <div
+                  key={c.userId}
+                  className="editor-collaborator-dot"
+                  style={{ backgroundColor: c.color || 'var(--color-primary)' }}
+                  title={`${c.userName} (${c.userRole})`}
+                >
+                  {c.userName.charAt(0)}
+                </div>
+              ))}
+            </div>
+          )}
 
           <button
-            className={`btn btn-sm ${isReadOnly ? '' : 'btn-primary'}`}
+            className={`btn btn-sm ${isReadOnly ? 'btn-secondary' : 'btn-primary'}`}
             onClick={handleManualSave}
             disabled={saving}
+            title={isReadOnly ? 'Artifact locked' : 'Save and trigger AST, ML, and test pipeline (Ctrl+S)'}
           >
-            {saving ? 'Analyzing...' : isReadOnly ? '🔒 Locked' : '💾 Save & Analyze'}
+            {saving ? (
+              <>
+                <div className="spinner-sm" /> Analyzing...
+              </>
+            ) : isReadOnly ? (
+              <>
+                <IconLock size={12} /> Locked
+              </>
+            ) : (
+              <>
+                <IconSparkles size={12} /> Save & Analyze
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      <div className="editor-container">
+      {/* 3. Monaco Editor Canvas */}
+      <div className="editor-monaco-canvas">
         <Editor
           height="100%"
           language={file.language || 'typescript'}
@@ -265,7 +361,10 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
             scrollBeyondLastLine: false,
             wordWrap: 'on',
             lineNumbers: 'on',
-            renderWhitespace: 'selection'
+            renderWhitespace: 'selection',
+            smoothScrolling: true,
+            cursorBlinking: 'smooth',
+            cursorSmoothCaretAnimation: 'on'
           }}
           onMount={handleEditorMount}
           onChange={handleEditorChange}

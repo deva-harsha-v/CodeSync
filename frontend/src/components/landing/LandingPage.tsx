@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icons } from '../common/Icons';
 
 interface LandingPageProps {
   onEnterWorkspace: () => void;
@@ -15,7 +16,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
       {/* Navigation Header */}
       <nav className="landing-nav">
         <div className="landing-logo">
-          <span style={{ fontSize: '20px' }}>⚡</span>
+          <Icons.Zap size={20} color="var(--accent-blue)" />
           <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.5px' }}>CodeSync</span>
           <span className="brand-tag">Research Edition</span>
         </div>
@@ -42,14 +43,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
         </p>
 
         <div className="hero-cta-group">
-          <button className="btn btn-primary btn-lg" onClick={onEnterWorkspace}>
-            🚀 Launch IDE Workspace
+          <button className="btn btn-primary btn-lg" onClick={onEnterWorkspace} style={{ gap: '8px' }}>
+            <Icons.Code size={18} color="#fff" />
+            <span>Launch IDE Workspace</span>
           </button>
-          <button className="btn btn-lg" onClick={scrollToArchitecture}>
-            🔍 Explore Architecture
+          <button className="btn btn-lg" onClick={scrollToArchitecture} style={{ gap: '8px' }}>
+            <Icons.Network size={18} color="var(--text-muted)" />
+            <span>Explore Architecture</span>
           </button>
-          <button className="btn btn-lg" onClick={onGoToLogin}>
-            👥 Demo Personas
+          <button className="btn btn-lg" onClick={onGoToLogin} style={{ gap: '8px' }}>
+            <Icons.User size={18} color="var(--text-muted)" />
+            <span>Demo Personas</span>
           </button>
         </div>
 
@@ -73,7 +77,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
 
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon">⚡</div>
+            <div className="feature-icon" style={{ color: 'var(--accent-blue)' }}>
+              <Icons.Zap size={28} color="var(--accent-blue)" />
+            </div>
             <h3>1. Real-Time Collaborative Coding</h3>
             <p>
               Latency-aware Operational Transformation (OT) engine synchronizing concurrent edits, live collaborator
@@ -82,7 +88,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🛡️</div>
+            <div className="feature-icon" style={{ color: 'var(--color-med)' }}>
+              <Icons.Shield size={28} color="var(--color-med)" />
+            </div>
             <h3>2. Role-Based Governance</h3>
             <p>
               Strict server-side authorization separating Admin/Project Owner, Developer, Reviewer, and Viewer roles
@@ -91,7 +99,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🔒</div>
+            <div className="feature-icon" style={{ color: 'var(--color-high)' }}>
+              <Icons.Lock size={28} color="var(--color-high)" />
+            </div>
             <h3>3. Controlled Artifact Ownership</h3>
             <p>
               Explicit module ownership mapping files to developers. Unauthorized edits are intercepted by permission gates
@@ -100,7 +110,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🕸️</div>
+            <div className="feature-icon" style={{ color: '#38bdf8' }}>
+              <Icons.Network size={28} color="#38bdf8" />
+            </div>
             <h3>4. Compiler-Grade Dependency Engine</h3>
             <p>
               Real TypeScript Compiler API AST analysis extracting import/export, function calls, class references,
@@ -109,16 +121,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">📊</div>
+            <div className="feature-icon" style={{ color: 'var(--color-high)' }}>
+              <Icons.Activity size={28} color="var(--color-high)" />
+            </div>
             <h3>5. ML Change-Impact Prediction</h3>
             <p>
-              Supervised Random Forest classifier scoring candidate artifacts across 18 change and co-change features.
+              Supervised Random Forest classifier scoring candidate artifacts across change and co-change features.
               All probabilities are dynamically computed.
             </p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🤖</div>
+            <div className="feature-icon" style={{ color: '#c084fc' }}>
+              <Icons.Sparkles size={28} color="#c084fc" />
+            </div>
             <h3>6. Contextual AI Assistant</h3>
             <p>
               Context-builder architecture supplying user role, git diff, AST graph, ML scores, and test traces
@@ -127,7 +143,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🧪</div>
+            <div className="feature-icon" style={{ color: 'var(--color-low)' }}>
+              <Icons.Flask size={28} color="var(--color-low)" />
+            </div>
             <h3>7. Intelligent Relevant Testing</h3>
             <p>
               Selective test execution based on AST graph connections. Captures assertion errors, failure traces, and run times
@@ -136,7 +154,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🐙</div>
+            <div className="feature-icon" style={{ color: '#a855f7' }}>
+              <Icons.GitBranch size={28} color="#a855f7" />
+            </div>
             <h3>8. Git / GitHub Integration</h3>
             <p>
               Durable version control integration associating collaborative sessions, change events, and approved fixes
@@ -192,7 +212,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
       </section>
 
       {/* Architecture Flow Section */}
-      <section id="architecture" className="landing-section">
+      <section id="architecture-section" className="landing-section">
         <div className="section-header">
           <h2>End-to-End System Pipeline</h2>
           <p>How code edits propagate through real-time sync, AST analysis, ML inference, and AI assistance.</p>
@@ -220,7 +240,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterWorkspace, onGo
           <div className="flow-step">
             <div className="step-num">4</div>
             <h4>Random Forest ML</h4>
-            <p>Model scores candidate files on 18 features, outputting dynamic risk probabilities.</p>
+            <p>Model scores candidate files on change features, outputting dynamic risk probabilities.</p>
           </div>
           <div className="flow-arrow">→</div>
           <div className="flow-step">

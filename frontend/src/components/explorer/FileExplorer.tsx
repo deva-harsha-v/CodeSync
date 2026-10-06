@@ -1,128 +1,182 @@
 import React, { useState } from 'react';
-import { ProjectFile, MLPrediction } from '../../types';
+import { ProjectFile, MLPrediction, UserProfile } from '../../types';
+import {
+  IconFolder,
+  IconFolderOpen,
+  IconFile,
+  IconLock,
+  IconChevronRight,
+  IconChevronDown,
+  IconSearch,
+  IconMoreHorizontal,
+  IconCheck
+} from '../common/Icons';
 
 interface FileExplorerProps {
   files: ProjectFile[];
   selectedFileId: string | null;
-  predictions?: MLPrediction[];
   onSelectFile: (file: ProjectFile) => void;
   onRequestAccess: (file: ProjectFile) => void;
+  predictions?: MLPrediction[];
+  currentUser?: UserProfile | null;
 }
 
 export const FileExplorer: React.FC<FileExplorerProps> = ({
   files,
   selectedFileId,
-  predictions = [],
   onSelectFile,
-  onRequestAccess
+  onRequestAccess,
+  predictions = [],
+  currentUser
 }) => {
+  const [searchFilter, setSearchFilter] = useState('');
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
 
-  // Group files by top-level directory
-  const groups: Record<string, ProjectFile[]> = {};
-  for (const f of files) {
-    const parts = f.path.split('/');
-    const folder = parts.length > 1 ? parts[0] + '/' : 'root/';
-    if (!groups[folder]) groups[folder] = [];
-    groups[folder].push(f);
-  }
-
-  const toggleFolder = (folder: string) => {
-    setCollapsedFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
+  const toggleFolder = (folderName: string) => {
+    setCollapsedFolders((prev) => ({
+      ...prev,
+      [folderName]: !prev[folderName]
+    }));
   };
 
+  // Group files by root directory (backend, frontend, tests, root)
+  const grouped: Record<string, ProjectFile[]> = {};
+  files.forEach((f) => {
+    const parts = f.path.split('/');
+    const folder = parts.length > 1 ? parts[0] : 'root';
+    if (!grouped[folder]) grouped[folder] = [];
+    grouped[folder].push(f);
+  });
+
+  const getPredictionForFile = (path: string): MLPrediction | undefined => {
+    return predictions.find((p) => p.targetFile === path || p.targetFile.endsWith(path.split('/').pop() || ''));
+  };
+
+  const renderImpactIndicator = (file: ProjectFile) => {
+    const pred = getPredictionForFile(file.path);
+    if (!pred) return null;
+
+    const probPct = Math.round(pred.impactProbability * 100);
+    const risk = pred.riskLevel?.toUpperCase();
+
+    if (risk === 'HIGH') {
+      return (
+        <span className="file-impact-badge impact-high" title={`ML Prediction: ${probPct}% High Risk`}>
+          <span className="impact-dot dot-high" /> {probPct}%
+        </span>
+      );
+    }
+    if (risk === 'MEDIUM') {
+      return (
+        <span className="file-impact-badge impact-med" title={`ML Prediction: ${probPct}% Medium Risk`}>
+          <span className="impact-dot dot-med" /> {probPct}%
+        </span>
+      );
+    }
+    return (
+      <span className="file-impact-badge impact-low" title={`ML Prediction: ${probPct}% Low Risk`}>
+        <span className="impact-dot dot-low" /> {probPct}%
+      </span>
+    );
+  };
+
+  const ownedCount = files.filter((f) => f.owner_id === currentUser?.id || f.canEdit).length;
+  const impactedCount = files.filter((f) => getPredictionForFile(f.path) !== undefined).length;
+
   return (
-    <div className="sidebar-content">
-      <div style={{ padding: '0 14px 8px 14px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-        Project Files & Ownership
+    <div className="file-explorer-container">
+      {/* Explorer Header */}
+      <div className="explorer-header">
+        <span className="explorer-title">EXPLORER</span>
+        <div className="explorer-header-actions">
+          <span className="project-root-tag">SMART-CANTEEN</span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {Object.entries(groups).map(([folder, groupFiles]) => {
-          const isCollapsed = collapsedFolders[folder];
+      {/* Filter Input */}
+      <div className="explorer-search-bar">
+        <IconSearch size={13} color="var(--text-muted)" />
+        <input
+          type="text"
+          className="explorer-search-input"
+          placeholder="Filter files..."
+          value={searchFilter}
+          onChange={(e) => setSearchFilter(e.target.value)}
+        />
+      </div>
+
+      {/* File Tree */}
+      <div className="explorer-tree">
+        {Object.keys(grouped).map((folderKey) => {
+          const folderFiles = grouped[folderKey].filter((f) =>
+            searchFilter ? f.path.toLowerCase().includes(searchFilter.toLowerCase()) : true
+          );
+
+          if (folderFiles.length === 0) return null;
+          const isCollapsed = !!collapsedFolders[folderKey];
 
           return (
-            <div key={folder} style={{ marginBottom: '6px' }}>
+            <div key={folderKey} className="explorer-folder-group">
               <div
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  userSelect: 'none'
-                }}
-                onClick={() => toggleFolder(folder)}
+                className="folder-header-row"
+                onClick={() => toggleFolder(folderKey)}
               >
-                <span>{isCollapsed ? '▸' : '▾'}</span>
-                <span>📁 {folder}</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>({groupFiles.length})</span>
+                {isCollapsed ? <IconChevronRight size={13} /> : <IconChevronDown size={13} />}
+                {isCollapsed ? <IconFolder size={14} color="var(--color-primary)" /> : <IconFolderOpen size={14} color="var(--color-primary)" />}
+                <span className="folder-name">{folderKey}</span>
+                <span className="folder-count">{folderFiles.length}</span>
               </div>
 
               {!isCollapsed && (
-                <ul className="file-list" style={{ paddingLeft: '8px' }}>
-                  {groupFiles.map((file) => {
+                <div className="folder-files-list">
+                  {folderFiles.map((file) => {
                     const isSelected = file.id === selectedFileId;
-                    const ownerInitials = file.owner_name ? file.owner_name.split(' ')[0] : 'Unassigned';
-
-                    // Check if file is predicted as impacted by ML
-                    const pred = predictions.find((p) => p.targetFile === file.path);
+                    const isLocked = file.canEdit === false;
 
                     return (
-                      <li
+                      <div
                         key={file.id}
-                        className={`file-item ${isSelected ? 'active' : ''}`}
+                        className={`tree-file-row ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
                         onClick={() => onSelectFile(file)}
+                        title={`${file.path} (Owner: ${file.owner_name || 'System'})`}
                       >
-                        <div className="file-info">
-                          <span>{file.path.endsWith('.tsx') ? '⚛' : file.path.includes('.test.') ? '🧪' : '📄'}</span>
-                          <span className="file-name" title={file.path}>
-                            {file.name}
-                          </span>
+                        <div className="tree-file-left">
+                          <IconFile size={13} color="var(--text-muted)" />
+                          <span className="tree-file-name">{file.name}</span>
                         </div>
 
-                        <div className="file-badges">
-                          {pred && (
-                            <span
-                              className={`impact-badge badge-${pred.riskLevel}`}
-                              style={{ fontSize: '9px', padding: '1px 4px' }}
-                              title={`Predicted Impact: ${pred.riskLevel} (${Math.round(pred.impactProbability * 100)}%)`}
-                            >
-                              {pred.riskLevel[0]}
-                            </span>
-                          )}
-
-                          <span
-                            className="owner-badge"
-                            title={`Owner: ${file.owner_name || 'Unassigned'} (${file.owner_role || 'Developer'})`}
-                          >
-                            {ownerInitials}
-                          </span>
-
-                          {!file.canEdit && (
-                            <span
-                              className="lock-badge"
-                              title={`Restricted file: ${file.editRestrictionReason || 'Access request required'}`}
+                        <div className="tree-file-right">
+                          {renderImpactIndicator(file)}
+                          {isLocked && (
+                            <button
+                              className="lock-icon-btn"
+                              title="Locked by ownership gate - click to request edit access"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onRequestAccess(file);
                               }}
                             >
-                              🔒
-                            </span>
+                              <IconLock size={12} color="var(--color-warning)" />
+                            </button>
                           )}
                         </div>
-                      </li>
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               )}
             </div>
           );
         })}
+      </div>
+
+      {/* Explorer Summary Footer */}
+      <div className="explorer-footer">
+        <span>{files.length} files</span>
+        <span>�</span>
+        <span>{ownedCount} owned</span>
+        <span>�</span>
+        <span className={impactedCount > 0 ? 'text-warning' : ''}>{impactedCount} impacted</span>
       </div>
     </div>
   );

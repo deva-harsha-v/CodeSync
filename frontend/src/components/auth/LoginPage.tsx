@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../types';
-import { ApiClient } from '../../services/api';
+import { Icons } from '../common/Icons';
 
 interface LoginPageProps {
   onLoginSuccess: (user: UserProfile, token?: string) => void;
@@ -20,7 +20,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBackToLa
 
   // Handle Demo Persona Quick Selection
   const handleSelectPersona = (persona: UserProfile) => {
-    // Demo persona sets user and mock token
     const token = `demo_token_${persona.id}_${Date.now()}`;
     localStorage.setItem('codesync_token', token);
     localStorage.setItem('codesync_user', JSON.stringify(persona));
@@ -70,8 +69,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBackToLa
     <div className="login-page-container">
       <div className="login-card">
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ fontSize: '28px', marginBottom: '6px' }}>⚡ CodeSync</div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Authentication & Persona Selection</h2>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
+            <Icons.Zap size={22} color="var(--accent-blue)" />
+            <span>CodeSync</span>
+          </div>
+          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>Authentication & Persona Selection</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
             Choose a demonstration persona or authenticate with project credentials.
           </p>
@@ -82,20 +84,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBackToLa
           <button
             className={`login-tab ${activeTab === 'personas' ? 'active' : ''}`}
             onClick={() => setActiveTab('personas')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
-            👥 Demo Personas (1-Click)
+            <Icons.User size={13} color={activeTab === 'personas' ? 'var(--text-main)' : 'var(--text-muted)'} />
+            <span>Demo Personas (1-Click)</span>
           </button>
           <button
             className={`login-tab ${activeTab === 'credentials' ? 'active' : ''}`}
             onClick={() => setActiveTab('credentials')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
-            🔐 Production Auth (JWT)
+            <Icons.Lock size={13} color={activeTab === 'credentials' ? 'var(--text-main)' : 'var(--text-muted)'} />
+            <span>Production Auth (JWT)</span>
           </button>
         </div>
 
         {error && (
-          <div className="login-error-alert">
-            ⚠️ {error}
+          <div className="login-error-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icons.TriangleAlert size={14} color="var(--color-high)" />
+            <span>{error}</span>
           </div>
         )}
 
