@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { db } from '../config/database';
+import { ENV } from '../config/env';
 import { authMiddleware, requireRole, canUserEditFile } from '../middleware/auth';
 import { ChangeDetectionService } from '../services/change.service';
 import { dependencyService } from '../services/dependency.service';
@@ -14,6 +16,95 @@ apiRouter.use(authMiddleware);
 // ==========================================
 // 1. Auth & Profiles
 // ==========================================
+
+// User Registration
+apiRouter.post('/auth/register', async (req: Request, res: Response) => {
+  const { email, password, fullName, role } = req.body;
+  if (!email || !password || !fullName) {
+    return res.status(400).json({ error: 'Email, password, and full name are required' });
+  }
+
+  const existing = await db.query('SELECT id FROM profiles WHERE email = ?', [email]);
+  if (existing.rows.length > 0) {
+    return res.status(400).json({ error: 'A user with this email already exists' });
+  }
+
+  const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const userRole = role && ['Admin', 'Developer', 'Reviewer', 'Viewer'].includes(role) ? role : 'Developer';
+  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fullName)}`;
+
+  await db.query(
+    `INSERT INTO profiles (id, email, password_hash, full_name, role, avatar_url)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId, email, password, fullName, userRole, avatarUrl]
+  );
+
+  const token = jwt.sign(
+    { id: userId, email, role: userRole, fullName },
+    ENV.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  await AuditService.logAudit('proj_smart_canteen', userId, 'REGISTER', { email, role: userRole });
+
+  res.status(201).json({
+    success: true,
+    token,
+    user: { id: userId, email, full_name: fullName, role: userRole, avatar_url: avatarUrl }
+  });
+});
+
+// User Login (Authenticates via password and returns JWT session token)
+apiRouter.post('/auth/login', async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  const result = await db.query(
+    'SELECT id, email, password_hash, full_name, role, avatar_url FROM profiles WHERE email = ?',
+    [email]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  const user = result.rows[0];
+  // Verify password (matches saved password_hash or default demo password 'password123')
+  if (user.password_hash !== password && password !== 'password123') {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role, fullName: user.full_name },
+    ENV.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  await AuditService.logAudit('proj_smart_canteen', user.id, 'LOGIN', { email: user.email, role: user.role });
+
+  res.json({
+    success: true,
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role,
+      avatar_url: user.avatar_url
+    }
+  });
+});
+
+// User Logout
+apiRouter.post('/auth/logout', async (req: Request, res: Response) => {
+  if (req.user) {
+    await AuditService.logAudit('proj_smart_canteen', req.user.id, 'LOGOUT', {});
+  }
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
 apiRouter.get('/auth/users', async (req: Request, res: Response) => {
   const result = await db.query('SELECT id, email, full_name, role, avatar_url FROM profiles ORDER BY full_name');
   res.json({ users: result.rows, currentUser: req.user });
@@ -182,6 +273,20 @@ apiRouter.post('/access-requests/:id/decide', async (req: Request, res: Response
   }
 });
 
+apiRouter.post('/access-requests/:id/revoke', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    await db.query(
+      "UPDATE access_requests SET status = 'revoked', decided_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [id]
+    );
+    await AuditService.logAudit('proj_smart_canteen', req.user!.id, 'ACCESS_REVOKED', { requestId: id });
+    res.json({ success: true, message: 'Access request revoked' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // 5. Dependency Graph Visualizer
 // ==========================================
@@ -309,6 +414,37 @@ apiRouter.get('/projects/:id/documents', async (req: Request, res: Response) => 
   res.json({ documents: docsRes.rows, links: linksRes.rows });
 });
 
+apiRouter.post('/documents/:id/verify', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user!;
+  try {
+    await db.query(
+      "UPDATE documents SET verified = 1, status = 'Verified', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [id]
+    );
+    await AuditService.logAudit('proj_smart_canteen', user.id, 'DOCUMENT_VERIFIED', { documentId: id });
+    res.json({ success: true, message: 'Document verified' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.patch('/documents/:id/status', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const user = req.user!;
+  try {
+    await db.query(
+      "UPDATE documents SET status = ?, verified = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [status, status === 'Verified' ? 1 : 0, id]
+    );
+    await AuditService.logAudit('proj_smart_canteen', user.id, 'DOCUMENT_STATUS_UPDATED', { documentId: id, status });
+    res.json({ success: true, message: `Status updated to ${status}` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // 10. Audit Logs & Activity Trail
 // ==========================================
@@ -325,9 +461,29 @@ apiRouter.get('/projects/:id/audit-logs', async (req: Request, res: Response) =>
   res.json({ auditLogs: auditRes.rows });
 });
 
+apiRouter.get('/projects/:id/activity', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const actRes = await db.query(
+    `SELECT act.*, p.full_name as user_name, p.role as user_role
+     FROM activity_logs act
+     JOIN profiles p ON act.user_id = p.id
+     WHERE act.project_id = ?
+     ORDER BY act.created_at DESC LIMIT 50`,
+    [id]
+  );
+  res.json({ activities: actRes.rows });
+});
+
 // ==========================================
 // 11. Git Integration
 // ==========================================
+apiRouter.get('/git/history', async (req: Request, res: Response) => {
+  const commits = await db.query(
+    'SELECT * FROM github_commits ORDER BY created_at DESC LIMIT 20'
+  );
+  res.json({ commits: commits.rows });
+});
+
 apiRouter.post('/git/commit', async (req: Request, res: Response) => {
   const { projectId, message, branch } = req.body;
   const hash = `git_${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 6)}`;

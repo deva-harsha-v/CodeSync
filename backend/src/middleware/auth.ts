@@ -20,10 +20,12 @@ declare global {
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // 1. Check for quick demo header 'x-user-id'
-    const demoUserId = req.header('x-user-id');
-    if (demoUserId) {
-      const result = await db.query('SELECT id, email, full_name, role FROM profiles WHERE id = ?', [demoUserId]);
+    // 1. Check Authorization Bearer token (Production JWT)
+    const authHeader = req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, ENV.JWT_SECRET) as any;
+      const result = await db.query('SELECT id, email, full_name, role FROM profiles WHERE id = ?', [decoded.id]);
       if (result.rows.length > 0) {
         const u = result.rows[0];
         req.user = {
@@ -36,12 +38,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       }
     }
 
-    // 2. Check Authorization Bearer token
-    const authHeader = req.header('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, ENV.JWT_SECRET) as any;
-      const result = await db.query('SELECT id, email, full_name, role FROM profiles WHERE id = ?', [decoded.id]);
+    // 2. Check for quick demo header 'x-user-id'
+    const demoUserId = req.header('x-user-id');
+    if (demoUserId) {
+      const result = await db.query('SELECT id, email, full_name, role FROM profiles WHERE id = ?', [demoUserId]);
       if (result.rows.length > 0) {
         const u = result.rows[0];
         req.user = {

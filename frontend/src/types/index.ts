@@ -100,6 +100,8 @@ export interface DocumentItem {
   doc_type: string;
   content: string;
   version: number;
+  status?: 'Draft' | 'Submitted' | 'Reviewed' | 'Verified';
+  verified?: boolean | number;
 }
 
 export interface DocumentLink {

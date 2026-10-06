@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { FileExplorer } from './components/explorer/FileExplorer';
 import { CollaborativeEditor } from './components/editor/CollaborativeEditor';
@@ -8,7 +8,11 @@ import { TestResultPanel } from './components/test/TestResultPanel';
 import { AIAssistantPanel } from './components/ai/AIAssistantPanel';
 import { TraceabilityViewer } from './components/docs/TraceabilityViewer';
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
+import { ActivityFeed } from './components/activity/ActivityFeed';
+import { GitPanel } from './components/git/GitPanel';
 import { AccessRequestModal } from './components/requests/AccessRequestModal';
+import { LandingPage } from './components/landing/LandingPage';
+import { LoginPage } from './components/auth/LoginPage';
 import { ApiClient } from './services/api';
 import {
   UserProfile,
@@ -20,15 +24,42 @@ import {
   AuditLogItem
 } from './types';
 
+type Route = 'landing' | 'login' | 'workspace';
+
 export const App: React.FC = () => {
   const projectId = 'proj_smart_canteen';
+
+  // Routing
+  const getInitialRoute = (): Route => {
+    const p = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    if (p === '/login' || hash.includes('login')) return 'login';
+    if (p === '/workspace' || hash.includes('workspace')) return 'workspace';
+    return 'landing';
+  };
+
+  const [route, setRoute] = useState<Route>(getInitialRoute());
+
+  const navigate = (newRoute: Route) => {
+    const path = newRoute === 'landing' ? '/' : `/${newRoute}`;
+    window.history.pushState({}, '', path);
+    setRoute(newRoute);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoute(getInitialRoute());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // State
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [activeFile, setActiveFile] = useState<ProjectFile | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<'files' | 'traceability' | 'audit'>('files');
+  const [sidebarTab, setSidebarTab] = useState<'files' | 'traceability' | 'audit' | 'activity' | 'git'>('files');
   const [dockTab, setDockTab] = useState<'impact' | 'tests' | 'ai' | 'graph'>('impact');
 
   // Real-time WebSocket
@@ -43,6 +74,8 @@ export const App: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [docLinks, setDocLinks] = useState<DocumentLink[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [gitCommits, setGitCommits] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   // Modals
@@ -62,15 +95,31 @@ export const App: React.FC = () => {
   const loadInitialData = async () => {
     try {
       const userData = await ApiClient.getUsers();
-      setUsers(userData.users);
+      setUsers(userData.users || []);
 
-      const defaultUser = userData.users.find((u: any) => u.id === 'user_dev_a') || userData.users[0];
-      setCurrentUser(defaultUser);
-      ApiClient.setCurrentUser(defaultUser.id);
+      let active: UserProfile | null = null;
+      const savedUserStr = localStorage.getItem('codesync_user');
+      if (savedUserStr) {
+        try {
+          const parsed = JSON.parse(savedUserStr);
+          active = (userData.users || []).find((u: any) => u.id === parsed.id) || null;
+        } catch {}
+      }
 
-      await refreshFilesAndGraph(defaultUser.id);
+      if (!active) {
+        active = (userData.users || []).find((u: any) => u.id === 'user_dev_a') || userData.users?.[0] || null;
+      }
+
+      if (active) {
+        setCurrentUser(active);
+        ApiClient.setCurrentUser(active.id);
+        await refreshFilesAndGraph(active.id);
+      }
+
       await refreshDocsAndLogs();
       await refreshNotifications();
+      await refreshActivities();
+      await refreshGitCommits();
     } catch (err: any) {
       console.error('Failed to load initial project data:', err.message);
     }
@@ -114,6 +163,24 @@ export const App: React.FC = () => {
       setNotifications(notifsRes.notifications || []);
     } catch (err) {
       console.error('Error refreshing notifications', err);
+    }
+  };
+
+  const refreshActivities = async () => {
+    try {
+      const actRes = await ApiClient.getActivity(projectId);
+      setActivities(actRes.activities || []);
+    } catch (err) {
+      console.error('Error refreshing activities', err);
+    }
+  };
+
+  const refreshGitCommits = async () => {
+    try {
+      const gitRes = await ApiClient.getGitHistory();
+      setGitCommits(gitRes.commits || []);
+    } catch (err) {
+      console.error('Error refreshing git history', err);
     }
   };
 
@@ -232,9 +299,19 @@ export const App: React.FC = () => {
       const res = await ApiClient.createCommit(projectId, msg);
       alert(`Commit created successfully!\nHash: ${res.commitHash}`);
       await refreshDocsAndLogs();
+      await refreshActivities();
+      await refreshGitCommits();
     } catch (err: any) {
       alert(`Git commit error: ${err.message}`);
     }
+  };
+
+  const handleCreateGitCommitFromPanel = async (message: string) => {
+    const res = await ApiClient.createCommit(projectId, message);
+    alert(`Commit created successfully!\nHash: ${res.commitHash}`);
+    await refreshDocsAndLogs();
+    await refreshActivities();
+    await refreshGitCommits();
   };
 
   // 10. AI Diagnosis Request
@@ -264,6 +341,7 @@ export const App: React.FC = () => {
       setActiveFile(full.file);
       await refreshFilesAndGraph(currentUser?.id || '');
       await refreshDocsAndLogs();
+      await refreshActivities();
 
       // Automatically re-run tests to confirm resolution
       const res = await ApiClient.runTests(projectId, targetFilePath);
@@ -276,6 +354,31 @@ export const App: React.FC = () => {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
+  // ROUTE 1: Landing Page
+  if (route === 'landing') {
+    return (
+      <LandingPage
+        onEnterWorkspace={() => navigate('workspace')}
+        onGoToLogin={() => navigate('login')}
+      />
+    );
+  }
+
+  // ROUTE 2: Login Page
+  if (route === 'login') {
+    return (
+      <LoginPage
+        users={users}
+        onLoginSuccess={(user) => {
+          handleSelectUser(user);
+          navigate('workspace');
+        }}
+        onBackToLanding={() => navigate('landing')}
+      />
+    );
+  }
+
+  // ROUTE 3: Collaborative Workspace IDE
   return (
     <div className="app-container">
       {/* Top Header */}
@@ -289,6 +392,12 @@ export const App: React.FC = () => {
         onGitCommit={handleGitCommit}
         unreadNotificationsCount={unreadCount}
         onOpenNotifications={() => setShowNotifications(true)}
+        onNavigateHome={() => navigate('landing')}
+        onSignOut={() => {
+          localStorage.removeItem('codesync_token');
+          localStorage.removeItem('codesync_user');
+          navigate('login');
+        }}
       />
 
       {/* Main IDE Split Layout */}
@@ -299,20 +408,37 @@ export const App: React.FC = () => {
             <div
               className={`sidebar-tab ${sidebarTab === 'files' ? 'active' : ''}`}
               onClick={() => setSidebarTab('files')}
+              title="Project Files"
             >
               Files
             </div>
             <div
               className={`sidebar-tab ${sidebarTab === 'traceability' ? 'active' : ''}`}
               onClick={() => setSidebarTab('traceability')}
+              title="Requirements Traceability"
             >
-              Traceability
+              Trace
             </div>
             <div
               className={`sidebar-tab ${sidebarTab === 'audit' ? 'active' : ''}`}
               onClick={() => setSidebarTab('audit')}
+              title="Audit Log"
             >
-              Audit Trail
+              Audit
+            </div>
+            <div
+              className={`sidebar-tab ${sidebarTab === 'activity' ? 'active' : ''}`}
+              onClick={() => setSidebarTab('activity')}
+              title="Real-Time Activity Feed"
+            >
+              Activity
+            </div>
+            <div
+              className={`sidebar-tab ${sidebarTab === 'git' ? 'active' : ''}`}
+              onClick={() => setSidebarTab('git')}
+              title="Git History & Commits"
+            >
+              Git
             </div>
           </div>
 
@@ -337,6 +463,18 @@ export const App: React.FC = () => {
           )}
 
           {sidebarTab === 'audit' && <AuditLogViewer logs={auditLogs} />}
+
+          {sidebarTab === 'activity' && (
+            <ActivityFeed activities={activities} onRefresh={refreshActivities} />
+          )}
+
+          {sidebarTab === 'git' && (
+            <GitPanel
+              commits={gitCommits}
+              onCreateCommit={handleCreateGitCommitFromPanel}
+              onRefresh={refreshGitCommits}
+            />
+          )}
         </aside>
 
         {/* Central Workspace */}

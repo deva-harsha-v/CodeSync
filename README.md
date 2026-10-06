@@ -174,36 +174,87 @@ npm run build
 
 ---
 
-## 6. Running the System
+---
 
-You can launch all services concurrently using the provided batch script:
+## 6. Application Routes & Personas
+
+CodeSync provides three seamlessly linked application routes:
+- **`/` — Professional Landing Page**: Research foundation (CodePilot CHI 2017 & Collabode UIST 2011), 8 architectural feature cards, system dataflow diagrams, and direct CTAs.
+- **`/login` — Authentication & Persona Portal**: Dual-mode entry featuring 1-click Demo Persona quick-login and production JWT email/password authentication.
+- **`/workspace` — Collaborative IDE Workspace**: Monaco Editor, live OT WebSockets, AST Dependency Graph visualizer, Random Forest ML impact prediction, selective test runner, contextual AI assistant, requirements traceability matrix, filterable activity feed, tamper-resistant audit trail, and Git commit panel.
+
+### Demo Personas & Credentials:
+
+| Persona | Role | Email | Password | Primary Module Ownership |
+|:---|:---|:---|:---|:---|
+| **Alex Rivera** | `Admin` | `alex.owner@canteen.edu` | `password123` | Full Administrative Override & Project Governance |
+| **Maya Patel** | `Developer` | `maya.patel@canteen.edu` | `password123` | Backend Services (`backend/authService.ts`) |
+| **Carlos Santos** | `Developer` | `carlos.santos@canteen.edu` | `password123` | Frontend UI (`frontend/login.tsx`) |
+| **Elena Rostova** | `Reviewer` | `elena.rostova@canteen.edu` | `password123` | QA Testing, Pull Requests & Git Commit Sign-Off |
+| **Jordan Lee** | `Viewer` | `jordan.lee@canteen.edu` | `password123` | Read-Only Project Stakeholder Observer Mode |
+
+---
+
+## 7. Running the System
+
+Launch all three services concurrently using the startup script:
 ```bash
 scripts\start-all.bat
 ```
 
-Or start each service individually:
-1. **ML Service:**
+Or start each microservice independently:
+1. **ML Service (FastAPI / Uvicorn):**
    ```bash
    cd ml-service
-   python app/main.py
-   # Runs on http://127.0.0.1:8000
+   python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+   # Available at http://127.0.0.1:8000
    ```
-2. **Backend Server:**
+2. **Backend Server (Express + WebSockets OT):**
    ```bash
    cd backend
    npm start
-   # Runs on http://localhost:5000 (REST) and ws://localhost:5000/ws/collaborate
+   # REST API at http://localhost:5000, WebSockets at ws://localhost:5000/ws/collaborate
    ```
-3. **Frontend IDE:**
+3. **Frontend IDE (React 18 + Vite):**
    ```bash
    cd frontend
    npm run dev
-   # Runs on http://localhost:3000
+   # Accessible at http://localhost:3000
    ```
 
 ---
 
-## 7. Smart Canteen Target Demonstration Scenario
+## 8. Automated System Verification & Tests
+
+CodeSync includes two comprehensive automated testing and demonstration scripts:
+
+### Suite A: 25-Point Comprehensive System Verification
+Validates all 10 core subsystems (Authentication, Controlled Ownership, Access Requests, AST Graph, ML Inference, Test Runner, Contextual AI, Traceability, Activity Feed, Git Integration):
+```bash
+node scripts/test-suite.js
+```
+
+### Suite B: 13-Milestone Smart Canteen End-to-End Walkthrough
+Programmatically executes the entire collaborative workflow from unauthorized edit interception to AI-assisted patch application and Git commit recording:
+```bash
+node scripts/verify-system.js
+```
+
+---
+
+## 9. Comprehensive Documentation Index
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Detailed architecture, pipeline dataflow, and component interactions.
+- [docs/API.md](docs/API.md) — Complete REST and WebSocket API specification.
+- [docs/ML.md](docs/ML.md) — Machine Learning feature vector, Random Forest model, and noise reduction analysis.
+- [docs/AI.md](docs/AI.md) — Contextual AI dual-mode architecture and automated patch generation.
+- [docs/DATABASE.md](docs/DATABASE.md) — PostgreSQL and SQLite relational schema design.
+- [docs/TESTING.md](docs/TESTING.md) — Automated testing procedures and verification commands.
+- [docs/research-evaluation.md](docs/research-evaluation.md) — 18-paper research literature review and empirical benchmark report.
+
+---
+
+## 10. Smart Canteen Target Demonstration Scenario
 
 CodeSync includes a pre-seeded Smart Canteen scenario configured to showcase the entire collaborative lifecycle:
 
@@ -230,17 +281,7 @@ CodeSync includes a pre-seeded Smart Canteen scenario configured to showcase the
 
 ---
 
-## 8. Automated End-to-End Verification
-
-To verify all 13 milestones programmatically:
-```bash
-# Ensure ML service and Backend are running, then run:
-node scripts/verify-system.js
-```
-
----
-
-## 9. Research Evaluation Summary
+## 11. Research Evaluation Summary
 
 | Metric | Baseline: Dependency-Only | Proposed: CodeSync (Dep + ML) | Delta |
 | :--- | :---: | :---: | :---: |
@@ -254,7 +295,7 @@ For full details, see [docs/research-evaluation.md](docs/research-evaluation.md)
 
 ---
 
-## 10. Known Limitations & Future Work
+## 12. Known Limitations & Future Work
 
 - **Multi-Language AST:** The current dependency parser targets TypeScript/TSX/JavaScript using the TypeScript Compiler API. Future work will extend tree-sitter bindings for Python, Go, and Java.
 - **Advanced Sandboxing:** Test execution runs in a controlled node process. Future iterations will introduce gVisor or Docker micro-containers for multi-tenant isolation.

@@ -7,6 +7,7 @@
 CREATE TABLE IF NOT EXISTS profiles (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    password_hash TEXT DEFAULT 'password123',
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'Developer' CHECK (role IN ('Admin', 'Developer', 'Reviewer', 'Viewer')),
     avatar_url TEXT,
@@ -82,7 +83,7 @@ CREATE TABLE IF NOT EXISTS access_requests (
     file_id TEXT NOT NULL REFERENCES files(id) ON DELETE CASCADE,
     requester_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     reason TEXT NOT NULL,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'expired')),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'revoked', 'expired')),
     approver_id TEXT REFERENCES profiles(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     decided_at TIMESTAMP WITH TIME ZONE
@@ -96,7 +97,8 @@ CREATE TABLE IF NOT EXISTS documents (
     doc_type TEXT NOT NULL CHECK (doc_type IN ('requirement', 'architecture', 'api_spec', 'test_plan')),
     content TEXT NOT NULL,
     version INTEGER DEFAULT 1,
-    verified BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'Verified' CHECK (status IN ('Draft', 'Submitted', 'Reviewed', 'Verified')),
+    verified BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

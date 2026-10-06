@@ -11,6 +11,8 @@ interface HeaderProps {
   onGitCommit: () => void;
   unreadNotificationsCount: number;
   onOpenNotifications: () => void;
+  onNavigateHome?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,12 +24,19 @@ export const Header: React.FC<HeaderProps> = ({
   onReindexGraph,
   onGitCommit,
   unreadNotificationsCount,
-  onOpenNotifications
+  onOpenNotifications,
+  onNavigateHome,
+  onSignOut
 }) => {
   return (
     <header className="ide-header">
       <div className="brand-section">
-        <div className="brand-logo">
+        <div
+          className="brand-logo"
+          onClick={onNavigateHome}
+          title={onNavigateHome ? 'Click to visit Landing Page' : undefined}
+          style={{ cursor: onNavigateHome ? 'pointer' : 'default' }}
+        >
           <span>⚡ CodeSync</span>
           <span className="brand-tag">Research Platform</span>
         </div>
@@ -39,9 +48,30 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions">
+        {onNavigateHome && (
+          <button className="btn btn-sm" onClick={onNavigateHome} title="Return to Landing Page">
+            🏠 Home
+          </button>
+        )}
+
         {/* Quick Demo Role Switcher */}
         <div className="role-picker">
-          <label>Active User / Role:</label>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: 'var(--color-info)',
+              background: 'rgba(88, 166, 255, 0.12)',
+              border: '1px solid rgba(88, 166, 255, 0.3)',
+              borderRadius: '4px',
+              padding: '1px 5px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
+            }}
+          >
+            Demo Mode
+          </span>
+          <label>Active User:</label>
           <select
             value={currentUser?.id || ''}
             onChange={(e) => {
@@ -94,6 +124,12 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           )}
         </button>
+
+        {onSignOut && (
+          <button className="btn btn-sm" onClick={onSignOut} title="Sign Out to Login Page">
+            🚪 Sign Out
+          </button>
+        )}
       </div>
     </header>
   );

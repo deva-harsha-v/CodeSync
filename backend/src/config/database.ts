@@ -96,6 +96,7 @@ class DatabaseManager {
       CREATE TABLE IF NOT EXISTS profiles (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
+        password_hash TEXT DEFAULT 'password123',
         full_name TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'Developer',
         avatar_url TEXT,
@@ -178,7 +179,8 @@ class DatabaseManager {
         doc_type TEXT NOT NULL,
         content TEXT NOT NULL,
         version INTEGER DEFAULT 1,
-        verified INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'Verified',
+        verified INTEGER DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
@@ -322,6 +324,14 @@ class DatabaseManager {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Automatic migration checks for existing SQLite databases
+    try {
+      this.sqliteDb.exec("ALTER TABLE profiles ADD COLUMN password_hash TEXT DEFAULT 'password123'");
+    } catch {}
+    try {
+      this.sqliteDb.exec("ALTER TABLE documents ADD COLUMN status TEXT DEFAULT 'Verified'");
+    } catch {}
 
     // Seed SQLite Smart Canteen target demo if empty
     const stmt = this.sqliteDb.prepare("SELECT COUNT(*) as count FROM projects WHERE id = 'proj_smart_canteen'");

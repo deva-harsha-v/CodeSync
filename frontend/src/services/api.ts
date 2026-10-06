@@ -12,11 +12,16 @@ export class ApiClient {
   }
 
   private static async request(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const headers = {
+    const token = localStorage.getItem('codesync_token');
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'x-user-id': this.currentUserId,
-      ...(options.headers || {})
+      ...(options.headers as Record<string, string> || {})
     };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const res = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
@@ -33,10 +38,34 @@ export class ApiClient {
     return data;
   }
 
+  // Authentication
+  public static async login(email: string, password: string) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+  }
+
+  public static async register(email: string, password: string, fullName: string, role: string) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, fullName, role })
+    });
+  }
+
+  public static async logout() {
+    return this.request('/auth/logout', { method: 'POST' });
+  }
+
+  public static async getMe() {
+    return this.request('/auth/me');
+  }
+
   public static async getUsers() {
     return this.request('/auth/users');
   }
 
+  // Projects & Files
   public static async getProject(projectId: string) {
     return this.request(`/projects/${projectId}`);
   }
@@ -56,6 +85,7 @@ export class ApiClient {
     });
   }
 
+  // Controlled Access Requests
   public static async createAccessRequest(projectId: string, fileId: string, reason: string) {
     return this.request('/access-requests', {
       method: 'POST',
@@ -74,6 +104,13 @@ export class ApiClient {
     });
   }
 
+  public static async revokeAccessRequest(requestId: string) {
+    return this.request(`/access-requests/${requestId}/revoke`, {
+      method: 'POST'
+    });
+  }
+
+  // Dependency Engine
   public static async getDependencies(projectId: string) {
     return this.request(`/projects/${projectId}/dependencies`);
   }
@@ -84,6 +121,7 @@ export class ApiClient {
     });
   }
 
+  // Testing
   public static async runTests(projectId: string, targetFilePath: string) {
     return this.request(`/projects/${projectId}/tests/run`, {
       method: 'POST',
@@ -95,6 +133,7 @@ export class ApiClient {
     return this.request(`/projects/${projectId}/tests/history`);
   }
 
+  // Contextual AI
   public static async analyzeAI(payload: {
     projectId: string;
     currentFilePath: string;
@@ -108,6 +147,7 @@ export class ApiClient {
     });
   }
 
+  // Notifications
   public static async getNotifications() {
     return this.request('/notifications');
   }
@@ -116,12 +156,34 @@ export class ApiClient {
     return this.request(`/notifications/${id}/read`, { method: 'POST' });
   }
 
+  // Documents & Traceability
   public static async getDocuments(projectId: string) {
     return this.request(`/projects/${projectId}/documents`);
   }
 
+  public static async verifyDocument(docId: string) {
+    return this.request(`/documents/${docId}/verify`, { method: 'POST' });
+  }
+
+  public static async updateDocumentStatus(docId: string, status: string) {
+    return this.request(`/documents/${docId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+  }
+
+  // Activity & Audit
+  public static async getActivity(projectId: string) {
+    return this.request(`/projects/${projectId}/activity`);
+  }
+
   public static async getAuditLogs(projectId: string) {
     return this.request(`/projects/${projectId}/audit-logs`);
+  }
+
+  // Git / GitHub
+  public static async getGitHistory() {
+    return this.request('/git/history');
   }
 
   public static async createCommit(projectId: string, message: string) {

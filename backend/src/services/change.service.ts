@@ -42,8 +42,9 @@ export class ChangeDetectionService {
     const oldContent = file.content || '';
 
     // Calculate diff metrics
+    const safeNewContent = newContent || '';
     const oldLines = oldContent.split('\n');
-    const newLines = newContent.split('\n');
+    const newLines = safeNewContent.split('\n');
     const linesAdded = Math.max(0, newLines.length - oldLines.length + 1);
     const linesDeleted = Math.max(0, oldLines.length - newLines.length);
 
@@ -54,7 +55,7 @@ export class ChangeDetectionService {
 
     let match;
     while ((match = funcRegex.exec(oldContent)) !== null) oldFuncs.add(match[1]);
-    while ((match = funcRegex.exec(newContent)) !== null) newFuncs.add(match[1]);
+    while ((match = funcRegex.exec(safeNewContent)) !== null) newFuncs.add(match[1]);
 
     const functionsChanged: string[] = [];
     for (const nf of newFuncs) {
