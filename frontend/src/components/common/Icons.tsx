@@ -263,6 +263,13 @@ export const IconArrowUpRight: React.FC<IconProps> = ({ size = 16, color = 'curr
   </svg>
 );
 
+export const IconHome: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+
 export const Icons = {
   Folder: IconFolder,
   FolderOpen: IconFolderOpen,
@@ -299,6 +306,7 @@ export const Icons = {
   PanelRight: IconPanelRight,
   Bolt: IconBolt,
   Zap: IconBolt,
-  ArrowUpRight: IconArrowUpRight
+  ArrowUpRight: IconArrowUpRight,
+  Home: IconHome
 };
 

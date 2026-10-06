@@ -153,8 +153,22 @@ export const AIReviewModal: React.FC<AIReviewModalProps> = ({
               <button className="btn btn-secondary" onClick={onClose}>
                 Reject Suggestion
               </button>
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  setLifecycle('applying');
+                  try {
+                    await onApplyAndTest(targetFilePath, proposedCode);
+                    setLifecycle('verified');
+                  } catch {
+                    setLifecycle('failed');
+                  }
+                }}
+              >
+                Apply Patch
+              </button>
               <button className="btn btn-primary" onClick={handleApply}>
-                <IconSparkles size={14} /> Apply & Run Tests
+                <IconSparkles size={14} /> Apply + Run Tests
               </button>
             </>
           )}

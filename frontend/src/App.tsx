@@ -499,27 +499,12 @@ export const App: React.FC = () => {
 
   // Git Commit
   const handleGitCommitPrompt = async () => {
-    const msg = prompt('Enter Git commit message:', 'Refactor: Update authentication token issuance contract');
-    if (!msg) return;
-
-    try {
-      const res = await ApiClient.createCommit(projectId, msg);
-      addToast({
-        type: 'success',
-        title: 'Git Commit Recorded',
-        message: `Created commit ${res.commitHash.slice(0, 8)} on branch main.`
-      });
-      setPipelinePhase('EDIT');
-      await refreshDocsAndLogs();
-      await refreshActivities();
-      await refreshGitCommits();
-    } catch (err: any) {
-      addToast({
-        type: 'error',
-        title: 'Git Commit Error',
-        message: err.message
-      });
-    }
+    setSidebarTab('git');
+    addToast({
+      type: 'info',
+      title: 'Source Control (Git)',
+      message: 'Switched to Git panel. Enter your message and record the commit.'
+    });
   };
 
   const handleCreateGitCommitFromPanel = async (message: string) => {
@@ -528,7 +513,9 @@ export const App: React.FC = () => {
       addToast({
         type: 'success',
         title: 'Git Commit Created',
-        message: `Commit ${res.commitHash.slice(0, 8)} recorded.`
+        message: `Commit ${res.commitHash.slice(0, 8)} recorded on branch main.`,
+        actionLabel: 'Return to Overview',
+        onAction: () => navigate('overview')
       });
       setPipelinePhase('EDIT');
       await refreshDocsAndLogs();
@@ -653,7 +640,7 @@ export const App: React.FC = () => {
           users={users}
           onLoginSuccess={(user) => {
             handleSelectUser(user);
-            navigate('workspace');
+            navigate('overview');
           }}
           onBackToLanding={() => navigate('landing')}
         />
@@ -692,10 +679,17 @@ export const App: React.FC = () => {
             predictions={predictions}
             documents={documents}
             testRun={testRun}
+            activities={activities}
+            gitCommits={gitCommits}
             onOpenWorkspace={() => navigate('workspace')}
             onSelectFile={(f) => {
               handleSelectFile(f);
               navigate('workspace');
+            }}
+            onSignOut={() => {
+              localStorage.removeItem('codesync_token');
+              localStorage.removeItem('codesync_user');
+              navigate('login');
             }}
           />
         </div>

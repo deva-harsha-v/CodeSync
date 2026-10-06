@@ -241,17 +241,35 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                     Proposed Verified Fix: <code style={{ fontFamily: 'var(--font-mono)' }}>{analysis.fixSuggestion.targetFile}</code>
                   </span>
                 </div>
-                <button
-                  className="btn btn-sm btn-primary"
-                  onClick={() => handleReviewFix(analysis.fixSuggestion)}
-                  style={{
-                    backgroundColor: '#10b981',
-                    gap: '4px'
-                  }}
-                >
-                  <Icons.Check size={12} color="#fff" />
-                  <span>Review & Apply Patch</span>
-                </button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => setAnalysis(null)}
+                    style={{ fontSize: '11px', padding: '3px 8px' }}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => onApplyFix(analysis.fixSuggestion.targetFile, analysis.fixSuggestion.proposedCode)}
+                    style={{ fontSize: '11px', padding: '3px 8px' }}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => handleReviewFix(analysis.fixSuggestion)}
+                    style={{
+                      backgroundColor: '#10b981',
+                      gap: '4px',
+                      fontSize: '11px',
+                      padding: '3px 10px'
+                    }}
+                  >
+                    <Icons.Check size={12} color="#fff" />
+                    <span>Apply + Run Tests</span>
+                  </button>
+                </div>
               </div>
 
               <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>

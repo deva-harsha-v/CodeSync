@@ -10,7 +10,8 @@ import {
   IconChevronDown,
   IconRefreshCw,
   IconUser,
-  IconShield
+  IconShield,
+  IconHome
 } from '../common/Icons';
 
 interface HeaderProps {
@@ -86,6 +87,17 @@ export const Header: React.FC<HeaderProps> = ({
             <IconGitBranch size={12} /> main
           </span>
         </div>
+
+        {onOpenOverview && (
+          <button
+            className="btn btn-sm"
+            onClick={onOpenOverview}
+            style={{ fontSize: '11px', padding: '2px 8px', gap: '4px', backgroundColor: 'var(--bg-surface)' }}
+            title="Return to Project Overview Dashboard"
+          >
+            <span>← Project Overview</span>
+          </button>
+        )}
 
         <div className="connection-pill">
           <span className={`status-dot ${wsConnected ? 'connected' : 'disconnected'}`} />
@@ -230,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setShowMenu(false);
                   }}
                 >
-                  ?? Return to Landing Page
+                  <IconHome size={14} /> Return to Landing Page
                 </button>
               )}
               {onSignOut && (

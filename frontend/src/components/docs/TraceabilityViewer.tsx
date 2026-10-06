@@ -20,7 +20,7 @@ export const TraceabilityViewer: React.FC<TraceabilityViewerProps> = ({
   const canVerify = currentUserRole === 'Admin' || currentUserRole === 'Reviewer';
 
   return (
-    <div className="sidebar-content" style={{ padding: '10px 14px' }}>
+    <div className="sidebar-content" style={{ padding: '10px 14px', fontSize: '12px' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -28,14 +28,14 @@ export const TraceabilityViewer: React.FC<TraceabilityViewerProps> = ({
         marginBottom: '10px'
       }}>
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
-          Document-to-Code Traceability
+          Document-to-Code Traceability Matrix
         </div>
         <span style={{ fontSize: '10px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
-          {documents.length} artifacts
+          {documents.length} specifications
         </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {documents.map((doc) => {
           const docLinks = links.filter((l) => l.document_id === doc.id);
           const status = doc.status || (doc.verified ? 'Verified' : 'Draft');
@@ -66,6 +66,7 @@ export const TraceabilityViewer: React.FC<TraceabilityViewerProps> = ({
                 gap: '8px'
               }}
             >
+              {/* Document Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Icons.File size={13} color="var(--accent-blue)" />
@@ -88,43 +89,63 @@ export const TraceabilityViewer: React.FC<TraceabilityViewerProps> = ({
                 </span>
               </div>
 
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                {doc.content.slice(0, 110)}...
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
+                {doc.content.slice(0, 95)}...
               </p>
 
-              {/* Traceability Matrix Links */}
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px' }}>
-                  Traceability Links ({docLinks.length}):
+              {/* 5-Stage Engineering Traceability Chain Matrix */}
+              <div style={{ marginTop: '2px' }}>
+                <div style={{ fontSize: '9px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '6px', letterSpacing: '0.4px' }}>
+                  Requirement → Artifact → Dependency → Test → Result
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  {docLinks.map((link) => (
-                    <div
-                      key={link.id}
-                      style={{
-                        fontSize: '11px',
-                        padding: '4px 6px',
-                        backgroundColor: '#090d16',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        border: '1px solid rgba(255, 255, 255, 0.04)'
-                      }}
-                      onClick={() => onSelectFileByPath && onSelectFileByPath(link.file_path)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Icons.Code size={11} color="var(--color-low)" />
-                        <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-main)', fontSize: '10px' }}>
-                          {link.file_name} {link.target_symbol ? `:: ${link.target_symbol}()` : ''}
-                        </code>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {docLinks.map((link) => {
+                    const testFile = link.file_path.includes('auth')
+                      ? 'tests/auth.test.ts'
+                      : 'tests/user.test.ts';
+
+                    return (
+                      <div
+                        key={link.id}
+                        style={{
+                          backgroundColor: '#070a13',
+                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          borderRadius: '4px',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => onSelectFileByPath && onSelectFileByPath(link.file_path)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--accent-blue)', fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600 }}>
+                            {link.file_name} {link.target_symbol ? `:: ${link.target_symbol}()` : ''}
+                          </span>
+                          <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
+                            {link.link_type}
+                          </span>
+                        </div>
+
+                        {/* Chain row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', overflowX: 'auto' }}>
+                          <span style={{ color: 'var(--text-main)' }}>Req</span>
+                          <span style={{ color: 'var(--text-dim)' }}>→</span>
+                          <span style={{ color: 'var(--accent-blue)' }}>{link.file_name.split('.')[0]}</span>
+                          <span style={{ color: 'var(--text-dim)' }}>→</span>
+                          <span style={{ color: '#38bdf8' }}>AST Edge</span>
+                          <span style={{ color: 'var(--text-dim)' }}>→</span>
+                          <span style={{ color: 'var(--color-low)' }}>{testFile}</span>
+                          <span style={{ color: 'var(--text-dim)' }}>→</span>
+                          <span style={{ color: status === 'Verified' ? 'var(--color-low)' : 'var(--color-med)', fontWeight: 600 }}>
+                            {status === 'Verified' ? 'PASSED' : 'CHECK'}
+                          </span>
+                        </div>
                       </div>
-                      <span style={{ color: 'var(--text-dim)', fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                        {link.link_type}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
